@@ -82,8 +82,11 @@ func (server *Server) serveConn(conn net.Conn) {
 		if re, ok := err.(tls.RecordHeaderError); ok && re.Conn != nil && tlsRecordHeaderLooksLikeHTTP(re.RecordHeader) {
 			io.WriteString(re.Conn, "HTTP/1.0 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.\n")
 		}
+		if !errors.Is(err, io.EOF) ||
+			!errors.Is(err, context.Canceled) {
+			server.logf("tls handshake error from %s: %s", conn.RemoteAddr(), err)
+		}
 
-		server.logf("tls handshake error from %s: %s", conn.RemoteAddr(), err)
 		server.metricsRequestsTotalInc("0", "")
 		return
 	}
